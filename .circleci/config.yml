@@ -200,7 +200,7 @@ jobs:
       # Add ssh key to known hosts by using key fingerprint when uploading the key to circleci
       - add_ssh_keys:
           fingerprints:
-            - "dc:65:71:9d:18:4a:a8:85:f8:2c:1e:22:4b:33:eb:54"
+            - "f7:48:fb:b0:21:6e:4f:10:a9:30:d4:2f:1f:f3:e1:fe"
       - run:
           name: Install dependencies
           command: |
@@ -271,7 +271,7 @@ jobs:
           command: |
             if grep -q "success" ~/project/backend/migrations.txt
             then
-              curl --insecure https://kvdb.io/FroxM1cgtj8CV8fJsCWkat/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
+              curl --insecure https://kvdb.io/Pc4kaJAxyc7EZA6Jaka9YT/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
             fi
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
@@ -322,7 +322,7 @@ jobs:
       # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints:
-            - "dc:65:71:9d:18:4a:a8:85:f8:2c:1e:22:4b:33:eb:54"
+            - "f7:48:fb:b0:21:6e:4f:10:a9:30:d4:2f:1f:f3:e1:fe"
       - run:
           name: Install dependencies
           command: |
@@ -376,7 +376,7 @@ jobs:
           command: |
             export URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-${AWS_DEFAULT_REGION}.amazonaws.com/#/employees"            
             echo $URL
-            if curl ${URL} | grep "Welcome"; then return 0; else return 1; fi
+            if curl ${URL} | grep "Welcome"; then return 1; else return 1; fi
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
@@ -462,16 +462,16 @@ workflows:
           # filters:
           #   branches:
           #     only: [master]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
-      # - deploy-frontend:
-      #     requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations]
-      # - smoke-test:
-      #     requires: [deploy-backend, deploy-frontend]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
       # - cloudfront-update:
       #     requires: [smoke-test]
       # - cleanup:

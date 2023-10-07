@@ -1,12 +1,25 @@
 ---
-
-- name: "configuration play." 
+- name: "Configuration to play deploy backend for Udapeople."
   hosts: web
   user: ubuntu
   gather_facts: false
   vars:
+    # Config enviroment for server -> production
+    # Ansible will use the environment variables to connect to the database
     - ansible_python_interpreter: /usr/bin/python3
     - ansible_host_key_checking: false
     - ansible_stdout_callback: yaml
+  environment:
+    - NODE_ENV: production
+    - TYPEORM_PORT: "{{ lookup('env', 'TYPEORM_PORT')}}"
+    - TYPEORM_USERNAME: "{{ lookup('env', 'TYPEORM_USERNAME')}}"
+    - TYPEORM_CONNECTION: "{{ lookup('env', 'TYPEORM_CONNECTION')}}"
+    - TYPEORM_HOST: "{{ lookup('env', 'TYPEORM_HOST')}}"
+    - TYPEORM_PASSWORD: "{{ lookup('env', 'TYPEORM_PASSWORD')}}"
+    - TYPEORM_MIGRATIONS_DIR: "{{ lookup('env', 'TYPEORM_MIGRATIONS_DIR')}}"
+    - TYPEORM_DATABASE: "{{ lookup('env', 'TYPEORM_DATABASE')}}"
+    - TYPEORM_MIGRATIONS: "{{ lookup('env', 'TYPEORM_MIGRATIONS')}}"
+    - TYPEORM_ENTITIES: "{{ lookup('env', 'TYPEORM_ENTITIES')}}"
+    - ENVIRONMENT: production
   roles:
     - deploy
