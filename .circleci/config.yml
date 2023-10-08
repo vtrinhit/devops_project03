@@ -16,9 +16,14 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
+            # change directory to ansible
             aws cloudformation delete-stack \
             --stack-name udapeople-backend-<<parameters.workflow_id>>
+
+            # remove the s3 bucket
             aws s3 rm s3://udapeople-<<parameters.workflow_id>> --recursive
+
+            # change directory to ansible
             aws cloudformation delete-stack \
             --stack-name udapeople-frontend-<<parameters.workflow_id>>
 
@@ -32,9 +37,14 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
+            # change directory to backend
             cd ~/project/backend
+
+            # install dependencies in package.json
             npm install
+            # revert the last migration
             npm run build
+            # revert the last migration
             npm run migrations:revert
 
 jobs:
@@ -50,11 +60,12 @@ jobs:
       - run:
           name: Build front-end
           command: |
+            # change directory to frontend
             cd frontend 
+            # install dependencies in package.json
             npm install
             # build the project
             npm run build
-      # Save results to cache
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
@@ -69,11 +80,11 @@ jobs:
       - run:
           name: Back-end build
           command: |
-            # change directory to backend
+            # change directory to backend Source code
             cd backend
-            # install dependencies in package.json
+            # install dependencies in package.json file
             npm install
-            # build the project
+            # build the project to run tests
             npm run build
       - save_cache:
           paths: [backend/node_modules]
@@ -89,11 +100,11 @@ jobs:
       - run:
           name: Test front-end
           command: |
-            # change directory to frontend
+            # change frontend source code
             cd frontend
-            # install dependencies in package.json
+            # install package.json
             npm install
-            # build project to run tests
+            # build project
             npm run test
 
   test-backend:
@@ -108,10 +119,13 @@ jobs:
           name: Test back-end
           command: |
 
+            # change directory to backend
             cd backend
 
+            # install dependencies in package.json
             npm install
 
+            # build the project to run tests
             npm run test
 
   scan-frontend:
@@ -125,6 +139,7 @@ jobs:
       - run:
           name: Scan front-end
           command: |
+            # change directory to frontend
             cd frontend
             npm install
             npm audit fix --audit-level=critical --force
@@ -158,6 +173,7 @@ jobs:
       - run:
           name: Ensure back-end infrastructure exists
           command: |
+            # Run cloudformation to create the back-end infrastructure in AWS
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --tags project=udapeople \
@@ -166,6 +182,7 @@ jobs:
       - run:
           name: Ensure front-end infrastructure exist
           command: |
+            # Run cloudformation to create the front-end infrastructure in AWS
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
               --tags project=udapeople \
@@ -174,7 +191,7 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-
+            # Print the public ip address of the back-end instance and add it to the ansible inventory
             echo $(aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7} \
@@ -212,18 +229,18 @@ jobs:
             echo ENVIRONMENT=production > backend/.env
             echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> backend/.env
             echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> backend/.env
+            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> backend/.env
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> backend/.env
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> backend/.env
             echo TYPEORM_HOST=$TYPEORM_HOST >> backend/.env
             echo TYPEORM_PORT=$TYPEORM_PORT >> backend/.env
             echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> backend/.env
             echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> backend/.env
-            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> backend/.env
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> backend/.env
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> backend/.env
 
             cat backend/.env
 
             cd .circleci/ansible
-            # Run ansible playbook to configure server with the correct environment variables and install dependencies
+            # Run ansible playbook to configure the server
             ansible-playbook -i inventory.txt configure-server.yml
 
       - persist_to_workspace:
@@ -243,13 +260,12 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-
+            # Install dependencies
             sudo apt install -y tar gzip curl
-
+            # Install aws cli
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-
+            # Unzip aws cli
             unzip -qq awscliv2.zip
-
             sudo ./aws/install
 
       - restore_cache:
@@ -281,19 +297,18 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-
-
-
+            # Install dependencies and tools needed
             apk add --update --no-cache nodejs tar npm aws-cli gzip
       - run:
           name: Get backend url
           command: |
-
+            # Get the public ip address of the back-end instance and add it to the .env file
             export BACKEND_IP=$(aws ec2 describe-instances \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7} \
               --output text)
 
+            # Add the backend ip to the .env file
             export API_URL="http://${BACKEND_IP}:3030"
             echo "API_URL = ${API_URL}"
             echo "API_URL=http://${BACKEND_IP}:3030" >> frontend/.env
@@ -337,9 +352,13 @@ jobs:
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz .
+            # Create a directory to store the artifact
             mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+            # Move the artifact to the directory
             mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+            # Change directory to ansible folder
             cd .circleci/ansible
+            # Run ansible playbook to deploy the backend
             echo "Contents of the inventory.txt file is ------$(cat inventory.txt)"
             ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment:
@@ -359,10 +378,12 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
+            # Get the public ip address of the back-end instance and add it to the .env file
             export BACKEND_IP=$(aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7} \
             --output text)
+            # Add the backend ip to the .env file
             export API_URL="http://${BACKEND_IP}:3030"
             echo $API_URL
             if curl --connect-timeout 5 "${API_URL}/api/status" | grep "ok"; then return 0; else return 0; fi
@@ -392,14 +413,19 @@ jobs:
       - run:
           name: Update cloudfront distribution
           command: |
+            # Get the old stack workflow id
             export OldWorkflowID=$(aws cloudformation list-exports \
             --query "Exports[?Name==\`WorkflowID\`].Value" \
             --no-paginate --output text)
+
+
+            # Deploy cloudfront distribution
             aws cloudformation deploy \
             --template-file .circleci/files/cloudfront.yml \
             --stack-name InitialStack \
             --parameter-overrides WorkflowID=${CIRCLE_WORKFLOW_ID:0:7} \
             --tags project=udapeople
+            # Get the cloudfront distribution id
             echo OldWorkflowID: ${OldWorkflowID}
             echo Current Workflow id: ${CIRCLE_WORKFLOW_ID:0:7}
       - destroy-environment:
@@ -415,18 +441,21 @@ jobs:
       - run:
           name: Get old stack workflow id
           command: |
+            # Get the old stack workflow id to delete the stack
             export OldWorkflowID=$(aws cloudformation \
                   list-exports \
                   --query "Exports[?Name==\`WorkflowID\`].Value" \
                   --no-paginate --output text)
-
+            #print the old workflow id and the current workflow id
             echo OldWorkflowID: "${OldWorkflowID}"
             echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
 
+            # Export all the stack names to an array
             export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
             --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
             echo Stack names: "${STACKS[@]}"   
 
+            # check if the old workflow id is in the stack names array and delete the stack
             if [[ "${CIRCLE_WORKFLOW_ID:0:7}" =~ "${OldWorkflowID}" ]]
             then
               echo '--------------DELETE CONFIRM---------------'
